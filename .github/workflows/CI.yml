@@ -1,0 +1,48 @@
+name: CI workflow
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+        working-directory: app
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        ref: ${{ github.head_ref }}
+
+    - name: Update composer.lock
+      run: composer update --no-install --no-autoloader --no-progress
+
+    - name: Validate composer.json and composer.lock
+      run: composer validate
+
+    - name: Install dependencies
+      if: steps.composer-cache.outputs.cache-hit != 'true'
+      run: composer install --prefer-dist --no-progress --optimize-autoloader
+
+    - name: Commit composer.lock updates
+      uses: stefanzweifel/git-auto-commit-action@v4.1.2
+      with:
+        commit_message: Apply composer.lock updates
+        branch: ${{ github.head_ref }}
+
+    - name: Lint, Format and Test Files
+      run: composer run-script ci
+      env:
+        INFECTION_BADGE_API_KEY: ${{ secrets.INFECTION_BADGE_API_KEY }}
+        STRYKER_DASHBOARD_API_KEY: ${{ secrets.STRYKER_DASHBOARD_API_KEY }}
+
+    - name: Commit formatting changes
+      uses: stefanzweifel/git-auto-commit-action@v4.1.2
+      with:
+        commit_message: Apply formatting changes
+        branch: ${{ github.head_ref }}
