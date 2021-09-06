@@ -46,5 +46,5 @@ return [
             $container->get(UidProcessor::class),
             $container->get(MemoryPeakUsageProcessor::class),
         ]);
-    })
+    }),
 ];
